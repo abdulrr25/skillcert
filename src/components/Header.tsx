@@ -10,8 +10,8 @@ const Header = () => {
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="bg-brand-blue text-white font-bold p-2 rounded">CC</div>
-          <span className="font-bold text-xl">CertChain</span>
+          <div className="bg-brand-blue text-white font-bold p-2 rounded">SC</div>
+          <span className="font-bold text-xl">SkillCert</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6 text-sm">

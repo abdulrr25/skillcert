@@ -8,12 +8,14 @@ export interface Certificate {
   issuerName: string;
   issueDate: string;
   expiryDate?: string;
-  ipfsHash?: string;
-  solanaHash?: string;
-  imageUrl?: string;
+  ipfsHash: string;
+  web3StorageHash: string;
+  solanaHash: string;
   fileType: 'pdf' | 'image';
   status: 'verified' | 'pending' | 'expired';
-  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  ownerAddress: string;
 }
 
 export interface User {

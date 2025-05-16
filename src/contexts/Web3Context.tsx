@@ -1,14 +1,35 @@
 
-import { createContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { Connection, clusterApiUrl } from '@solana/web3.js';
+
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      request: (request: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, handler: (...args: any[]) => void) => void;
+      removeListener: (event: string, handler: (...args: any[]) => void) => void;
+    };
+    solana?: {
+      isPhantom?: boolean;
+      connect: () => Promise<{ publicKey: { toBase58: () => string } }>;
+      request: (request: { method: string; params?: any[] }) => Promise<any>;
+      on: (event: string, handler: (...args: any[]) => void) => void;
+      removeListener: (event: string, handler: (...args: any[]) => void) => void;
+    };
+  }
+}
 
 interface Web3ContextType {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
   isMetaMaskInstalled: boolean;
-  connectWallet: () => Promise<void>;
+  isSolanaInstalled: boolean;
+  connectWallet: (walletType: 'metamask' | 'rainbow' | 'privy' | 'solana') => Promise<void>;
   disconnectWallet: () => void;
+  currentWallet: string | null;
 }
 
 export const Web3Context = createContext<Web3ContextType>({
@@ -16,8 +37,10 @@ export const Web3Context = createContext<Web3ContextType>({
   isConnected: false,
   isConnecting: false,
   isMetaMaskInstalled: false,
+  isSolanaInstalled: false,
   connectWallet: async () => {},
   disconnectWallet: () => {},
+  currentWallet: null,
 });
 
 interface Web3ProviderProps {
@@ -29,112 +52,167 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [isMetaMaskInstalled, setIsMetaMaskInstalled] = useState<boolean>(false);
+  const [isSolanaInstalled, setIsSolanaInstalled] = useState<boolean>(false);
+  const [currentWallet, setCurrentWallet] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const connection = useMemo(() => new Connection(clusterApiUrl('devnet')), []);
+
+  const disconnectWallet = useCallback(() => {
+    setAddress(null);
+    setIsConnected(false);
+    setCurrentWallet(null);
+    toast({
+      title: 'Disconnected',
+      description: 'Wallet has been disconnected'
+    });
+  }, [toast]);
+
+  const handleAccountsChanged = useCallback((accounts: string[]) => {
+    if (accounts.length === 0) {
+      disconnectWallet();
+    } else {
+      setAddress(accounts[0]);
+      setIsConnected(true);
+    }
+  }, [disconnectWallet]);
+
   useEffect(() => {
-    const checkMetaMask = async () => {
+    const checkWallets = async () => {
+      // Check for MetaMask
       if (window.ethereum) {
         setIsMetaMaskInstalled(true);
         
         try {
-          // Check if already connected
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (accounts && accounts.length > 0) {
             setAddress(accounts[0]);
             setIsConnected(true);
+            setCurrentWallet('metamask');
           }
         } catch (error) {
-          console.error("Error checking accounts:", error);
+          console.error("MetaMask error:", error);
         }
+      }
 
-        // Setup event handlers
-        window.ethereum.on('accountsChanged', (accounts: string[]) => {
-          if (accounts.length === 0) {
-            setAddress(null);
-            setIsConnected(false);
-          } else {
-            setAddress(accounts[0]);
+      // Check for Solana
+      if (window.solana) {
+        setIsSolanaInstalled(true);
+        
+        try {
+          const response = await window.solana.connect();
+          if (response?.publicKey) {
+            const address = response.publicKey.toBase58();
+            setAddress(address);
             setIsConnected(true);
+            setCurrentWallet('solana');
           }
-        });
-
-        window.ethereum.on('disconnect', () => {
-          setAddress(null);
-          setIsConnected(false);
-        });
-
-        window.ethereum.on('chainChanged', () => {
-          window.location.reload();
-        });
+        } catch (error) {
+          console.error("Solana error:", error);
+        }
       }
     };
 
-    checkMetaMask();
+    checkWallets();
+
+    // Setup event handlers
+    const ethereum = window.ethereum;
+    const solana = window.solana;
+
+    const handleEthereumAccountsChanged = (accounts: string[]) => handleAccountsChanged(accounts);
+    const handleSolanaAccountChanged = () => window.location.reload();
+
+    ethereum?.on('accountsChanged', handleEthereumAccountsChanged);
+    solana?.on('accountChanged', handleSolanaAccountChanged);
 
     return () => {
-      if (window.ethereum) {
-        window.ethereum.removeAllListeners();
-      }
+      ethereum?.removeListener('accountsChanged', handleEthereumAccountsChanged);
+      solana?.removeListener('accountChanged', handleSolanaAccountChanged);
     };
-  }, []);
+  }, [handleAccountsChanged]);
 
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      toast({
-        title: "MetaMask not installed",
-        description: "Please install MetaMask to use this feature",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsConnecting(true);
-    
+  const connectWallet = useCallback(async (walletType: 'metamask' | 'rainbow' | 'privy' | 'solana') => {
     try {
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
+      setIsConnecting(true);
       
-      if (accounts.length > 0) {
-        setAddress(accounts[0]);
-        setIsConnected(true);
-        toast({
-          title: "Wallet connected",
-          description: `Connected to ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`,
-        });
+      switch (walletType) {
+        case 'metamask':
+          if (!window.ethereum) {
+            throw new Error('MetaMask is not installed');
+          }
+          
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+          });
+          
+          if (accounts?.[0]) {
+            setAddress(accounts[0]);
+            setIsConnected(true);
+            setCurrentWallet('metamask');
+          }
+          break;
+
+        case 'solana':
+          if (!window.solana) {
+            throw new Error('Solana wallet is not installed');
+          }
+          
+          const response = await window.solana.connect();
+          if (response?.publicKey) {
+            const address = response.publicKey.toBase58();
+            setAddress(address);
+            setIsConnected(true);
+            setCurrentWallet('solana');
+          }
+          break;
+
+        case 'rainbow':
+        case 'privy':
+          throw new Error(`${walletType} integration not yet implemented`);
+
+        default:
+          throw new Error('Wallet type not supported');
       }
-    } catch (error) {
-      console.error("Error connecting wallet:", error);
+
       toast({
-        title: "Connection failed",
-        description: "Failed to connect your wallet",
-        variant: "destructive",
+        title: 'Wallet Connected',
+        description: `Successfully connected to ${walletType}`
       });
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      toast({
+        title: 'Connection Failed',
+        description: error instanceof Error ? error.message : 'Failed to connect wallet',
+        variant: 'destructive'
+      });
+      throw error;
     } finally {
       setIsConnecting(false);
     }
-  };
+  }, [toast]);
 
-  const disconnectWallet = () => {
-    setAddress(null);
-    setIsConnected(false);
-    toast({
-      title: "Wallet disconnected",
-      description: "Your wallet has been disconnected",
-    });
-  };
+  const contextValue = useMemo<Web3ContextType>(() => ({
+    address,
+    isConnected,
+    isConnecting,
+    isMetaMaskInstalled,
+    isSolanaInstalled,
+    connectWallet,
+    disconnectWallet,
+    currentWallet
+  }), [
+    address,
+    isConnected,
+    isConnecting,
+    isMetaMaskInstalled,
+    isSolanaInstalled,
+    connectWallet,
+    disconnectWallet,
+    currentWallet
+  ]);
 
   return (
-    <Web3Context.Provider
-      value={{
-        address,
-        isConnected,
-        isConnecting,
-        isMetaMaskInstalled,
-        connectWallet,
-        disconnectWallet,
-      }}
-    >
+    <Web3Context.Provider value={contextValue}>
       {children}
     </Web3Context.Provider>
   );
