@@ -1,74 +1,67 @@
-# Welcome to your Lovable project
+🛡️ SkillCert – Decentralized Certificate Verification with ZK Compression
+SkillCert is a decentralized platform for issuing, storing, and verifying certificates using blockchain, Supabase, and zero-knowledge compression on Solana. Users can share verifiable credentials via sharable links or QR codes. This project is built for the 1000x ZK Compression Hackathon, backed by Light Protocol, Helius, and Solana Foundation.
 
-## Project info
 
-**URL**: https://lovable.dev/projects/1723b445-50e2-49a5-a8fb-16f9de6733de
+🚀 Features:
 
-## How can I edit this code?
+🦊 MetaMask Authentication (via RainbowKit or wagmi)
 
-There are several ways of editing your application.
+📦 Upload Certificates (PDF/Image)
 
-**Use Lovable**
+🧾 Store Metadata in Supabase
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1723b445-50e2-49a5-a8fb-16f9de6733de) and start prompting.
+🌐 Store Certificate Files on IPFS via Web3.Storage
 
-Changes made via Lovable will be committed automatically to this repo.
+🔐 Compress and store hashes on Solana using ZK Compression
 
-**Use your preferred IDE**
+🔗 Share via URL or QR Code
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+✅ Verify authenticity from the public cert page
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+🔒 Immutable & verifiable
 
-Follow these steps:
+⚙️ Tech Stack
+Layer	Tech
+Frontend	React + TypeScript + Tailwind
+Wallet Auth	MetaMask + RainbowKit (wagmi)
+Storage	Web3.Storage (IPFS)
+Backend	Supabase (Postgres + Auth)
+Blockchain	Solana + Light Protocol (ZK Compression)
+Verification	QR Code Generator + Dynamic Cert Routes
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+🧱 Architecture
+User Auth via MetaMask
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+User uploads cert → File saved to IPFS
 
-# Step 3: Install the necessary dependencies.
-npm i
+Metadata saved to Supabase (owner, file CID, cert title)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Hash of cert + owner → Compressed and stored on Solana
 
-**Edit a file directly in GitHub**
+Verification: Anyone with link/QR can verify against on-chain compressed hash
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+📦 Installation
 
-**Use GitHub Codespaces**
+git clone https://github.com/your-username/skillcert.git
+cd skillcert
+npm install
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+🔐 Environment Variables
+Create a .env file with:
 
-This project is built with:
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_WEB3STORAGE_TOKEN=your_web3_storage_token
+VITE_SOLANA_RPC=https://api.devnet.solana.com
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+🧠 How ZK Compression Is Used
+We use Light Protocol’s SDK to:
 
-## How can I deploy this project?
+Compress the certificate hash and wallet address into a zk-compressed Solana account or token.
 
-Simply open [Lovable](https://lovable.dev/projects/1723b445-50e2-49a5-a8fb-16f9de6733de) and click on Share -> Publish.
+Store this lightweight, cost-efficient hash on-chain.
 
-## Can I connect a custom domain to my Lovable project?
+Verification queries compare IPFS file + user to zk-compressed hash.
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-"# skillcert" 
+Documentation: https://www.zkcompression.com/
