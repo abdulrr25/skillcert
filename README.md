@@ -42,7 +42,7 @@ Verification: Anyone with link/QR can verify against on-chain compressed hash
 
 📦 Installation
 
-git clone https://github.com/your-username/skillcert.git
+git clone [https://github.com/abdulrr25/skillcert.git]
 cd skillcert
 npm install
 
@@ -64,4 +64,4 @@ Store this lightweight, cost-efficient hash on-chain.
 
 Verification queries compare IPFS file + user to zk-compressed hash.
 
-Documentation: https://www.zkcompression.com/
+Documentation: [https://www.zkcompression.com]
